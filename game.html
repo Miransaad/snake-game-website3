@@ -19,7 +19,6 @@
             <button id="down">↓</button>
             <button id="right">→</button>
         </div>
-        <button id="playAgain">Play Again</button>
     </main>
 
     <script>
@@ -35,6 +34,7 @@
         const white = "#FFFFFF";
         const green = "#00FF00";
         const red = "#FF0000";
+        const gray = "#808080";
 
         let snake = [];
         let direction = "RIGHT";
@@ -43,10 +43,10 @@
         let highScore = localStorage.getItem("snakeHighScore") || 0;
         let gameRunning = false;
         let gameLoopId;
+        let gameOver = false;
 
         const scoreDisplay = document.getElementById("scoreDisplay");
         const highScoreDisplay = document.getElementById("highScore");
-        const playAgainBtn = document.getElementById("playAgain");
         highScoreDisplay.textContent = highScore;
 
         function initGame() {
@@ -57,9 +57,9 @@
             direction = "RIGHT";
             score = 0;
             gameRunning = true;
+            gameOver = false;
             generateFood();
             updateScoreDisplay();
-            playAgainBtn.style.display = "none";
             if (gameLoopId) clearTimeout(gameLoopId);
             gameLoop();
         }
@@ -75,7 +75,12 @@
         }
 
         document.addEventListener("keydown", (event) => {
-            if (!gameRunning) return;
+            if (!gameRunning) {
+                if (gameOver && (event.key === "Enter" || event.key === " ")){
+                    initGame(); // "Try Again" via Enter/Space
+                }
+                return;
+            }
             switch (event.key) {
                 case "ArrowLeft": if (direction !== "RIGHT") direction = "LEFT"; break;
                 case "ArrowRight": if (direction !== "LEFT") direction = "RIGHT"; break;
@@ -97,7 +102,22 @@
             if (gameRunning && direction !== "LEFT") direction = "RIGHT";
         });
 
-        playAgainBtn.addEventListener("click", initGame);
+        canvas.addEventListener("click", (event) => {
+            if (!gameRunning && gameOver) {
+                const rect = canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+
+                // Check if click is within "Try Again" button area
+                if (x >= 100 && x <= 220 && y >= 120 && y <= 160) {
+                    initGame(); // "Try Again"
+                }
+                // Check if click is within "Play Again" button area
+                if (x >= 100 && x <= 220 && y >= 170 && y <= 210) {
+                    initGame(); // "Play Again"
+                }
+            }
+        });
 
         function gameLoop() {
             if (!gameRunning) {
@@ -116,6 +136,7 @@
             if (head.x < 0 || head.x >= width || head.y < 0 || head.y >= height ||
                 snake.some(segment => segment.x === head.x && segment.y === head.y)) {
                 gameRunning = false;
+                gameOver = true;
                 updateHighScore();
                 showGameOver();
                 return;
@@ -159,15 +180,20 @@
             ctx.fillStyle = white;
             ctx.font = "20px Arial";
             ctx.textAlign = "center";
-            ctx.fillText("Game Over", width / 2, height / 2);
-            setTimeout(() => {
-                const tryAgain = confirm("Try Again?");
-                if (tryAgain) {
-                    initGame(); // Restart immediately if "OK"
-                } else {
-                    playAgainBtn.style.display = "block"; // Show "Play Again" if "Cancel"
-                }
-            }, 500); // Delay to show "Game Over" first
+            ctx.fillText("Game Over", width / 2, height / 2 - 20);
+
+            // Draw "Try Again" button
+            ctx.fillStyle = gray;
+            ctx.fillRect(100, 120, 120, 40);
+            ctx.fillStyle = white;
+            ctx.font = "16px Arial";
+            ctx.fillText("Try Again", width / 2, 145);
+
+            // Draw "Play Again" button
+            ctx.fillStyle = gray;
+            ctx.fillRect(100, 170, 120, 40);
+            ctx.fillStyle = white;
+            ctx.fillText("Play Again", width / 2, 195);
         }
 
         initGame();
